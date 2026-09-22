@@ -1,0 +1,274 @@
+@import "tailwindcss";
+@import "mapbox-gl/dist/mapbox-gl.css";
+
+/* ------------------------------------------------------------------------
+   Design tokens — dark navy / charcoal, warm off-white type, muted gold and
+   soft natural green accents. Tailwind v4 reads these via @theme.
+   --------------------------------------------------------------------- */
+@theme {
+  --color-navy-950: #070b14;
+  --color-navy-900: #0b1220;
+  --color-navy-800: #111a2c;
+  --color-navy-700: #1a2538;
+  --color-navy-600: #26334a;
+  --color-charcoal-900: #14161b;
+  --color-charcoal-800: #1c1f26;
+  --color-charcoal-700: #272b34;
+
+  --color-ivory-50: #fbf8f1;
+  --color-ivory-100: #f4efe4;
+  --color-ivory-200: #e8e0cf;
+  --color-ivory-300: #d6ccb6;
+  --color-ivory-400: #b8ad97;
+  --color-ivory-500: #948a76;
+
+  --color-gold-300: #e3cf9a;
+  --color-gold-400: #d3b877;
+  --color-gold-500: #c2a25a;
+  --color-gold-600: #a4864a;
+  --color-gold-700: #7d6535;
+
+  --color-sage-300: #a9c1a7;
+  --color-sage-400: #8aa88a;
+  --color-sage-500: #6f8f70;
+  --color-sage-600: #55715a;
+
+  --color-danger-400: #e08a7a;
+  --color-danger-500: #c96a5b;
+
+  --font-serif: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --shadow-soft: 0 10px 30px -12px rgb(0 0 0 / 0.55), 0 2px 8px -2px rgb(0 0 0 / 0.35);
+  --shadow-glow: 0 0 0 1px rgb(211 184 119 / 0.25), 0 12px 40px -14px rgb(211 184 119 / 0.35);
+
+  --radius-xl2: 1.25rem;
+
+  --animate-fade-up: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fade-in 0.5s ease-out both;
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+  }
+}
+
+:root {
+  color-scheme: dark;
+  --background: var(--color-navy-900);
+  --foreground: var(--color-ivory-100);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: rgb(211 184 119 / 0.35);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold-400);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Utility layers ------------------------------------------------------- */
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+  .card {
+    @apply rounded-2xl border border-white/8 bg-navy-800/80 shadow-soft backdrop-blur;
+  }
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-gold-400 text-navy-950 hover:bg-gold-300 shadow-[0_8px_24px_-10px_rgb(211_184_119/0.7)];
+  }
+  .btn-secondary {
+    @apply border border-ivory-100/20 bg-white/5 text-ivory-100 hover:bg-white/10 hover:border-ivory-100/35;
+  }
+  .btn-ghost {
+    @apply text-ivory-200 hover:bg-white/8 hover:text-ivory-50;
+  }
+  .btn-danger {
+    @apply border border-danger-500/40 bg-danger-500/10 text-danger-400 hover:bg-danger-500/20;
+  }
+  .input {
+    @apply w-full rounded-xl border border-white/10 bg-navy-950/60 px-4 py-2.5 text-ivory-100 placeholder:text-ivory-500 focus:border-gold-400/60 focus:outline-none focus:ring-2 focus:ring-gold-400/20 transition;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-ivory-400;
+  }
+  .eyebrow {
+    @apply text-xs font-medium uppercase tracking-[0.2em] text-gold-400;
+  }
+  .prose-memorial {
+    @apply text-[1.05rem] leading-relaxed text-ivory-200 whitespace-pre-line;
+  }
+  .divider {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-gold-400/40 to-transparent;
+  }
+}
+
+/* Mapbox overrides ------------------------------------------------------ */
+.mapboxgl-ctrl-group {
+  background: rgb(17 26 44 / 0.92) !important;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-soft) !important;
+}
+.mapboxgl-ctrl-group button {
+  background-color: transparent !important;
+}
+.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid rgb(255 255 255 / 0.08) !important;
+}
+.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
+  filter: invert(0.9) sepia(0.3);
+}
+.mapboxgl-ctrl-attrib {
+  background: rgb(7 11 20 / 0.7) !important;
+  color: #b8ad97 !important;
+  font-size: 10px !important;
+}
+.mapboxgl-ctrl-attrib a {
+  color: #d6ccb6 !important;
+}
+.mapboxgl-ctrl-logo {
+  opacity: 0.55;
+}
+.mapboxgl-popup-content {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+.mapboxgl-popup-tip {
+  display: none;
+}
+.map-choose-mode .mapboxgl-canvas-container {
+  cursor: crosshair !important;
+}
+
+/* Memorial marker ------------------------------------------------------- */
+.memorial-marker {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s ease;
+}
+.memorial-marker::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 45%, #f0dfae 0%, #d3b877 50%, #a4864a 100%);
+  box-shadow: 0 0 0 3px rgb(11 18 32 / 0.85), 0 0 0 4px rgb(211 184 119 / 0.55), 0 6px 18px -4px rgb(211 184 119 / 0.75);
+}
+.memorial-marker::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  border: 1px solid rgb(211 184 119 / 0.35);
+  animation: pulse-soft 2.6s ease-in-out infinite;
+}
+.memorial-marker:hover,
+.memorial-marker.is-active {
+  transform: scale(1.25);
+  z-index: 5;
+}
+.memorial-marker.is-family::before {
+  background: radial-gradient(circle at 50% 45%, #cfe0cc 0%, #8aa88a 55%, #55715a 100%);
+  box-shadow: 0 0 0 3px rgb(11 18 32 / 0.85), 0 0 0 4px rgb(138 168 138 / 0.55), 0 6px 18px -4px rgb(138 168 138 / 0.7);
+}
+.memorial-marker.is-family::after {
+  border-color: rgb(138 168 138 / 0.35);
+}
+.memorial-marker.is-temp::before {
+  background: radial-gradient(circle at 50% 45%, #ffffff 0%, #e8e0cf 60%, #b8ad97 100%);
+}
+
+.cluster-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #0b1220;
+  font-weight: 600;
+  font-size: 12px;
+  background: radial-gradient(circle at 40% 35%, #eedbb0 0%, #d3b877 60%, #a4864a 100%);
+  box-shadow: 0 0 0 4px rgb(211 184 119 / 0.25), 0 0 0 10px rgb(211 184 119 / 0.08), 0 10px 24px -8px rgb(0 0 0 / 0.6);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  white-space: nowrap;
+}
+.cluster-marker:hover {
+  transform: scale(1.08);
+}
+
+/* Scrollbars ----------------------------------------------------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.15) transparent;
+}
