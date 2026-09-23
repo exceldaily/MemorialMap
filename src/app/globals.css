@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "mapbox-gl/dist/mapbox-gl.css";
+@import "mapbox-gl/dist/mapbox-gl.css" layer(base);
 
 /* ------------------------------------------------------------------------
    Design tokens — dark navy / charcoal, warm off-white type, muted gold and
