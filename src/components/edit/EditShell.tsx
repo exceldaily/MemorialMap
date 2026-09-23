@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ExternalLink, Images, Film, Clock, Users, MapPin, Palette, QrCode, ShieldCheck, Trash2, FileText } from "lucide-react";
+import { AlertTriangle, ExternalLink, Images, Film, Clock, Users, MapPin, Palette, QrCode, ShieldCheck, Sparkles, Trash2, FileText } from "lucide-react";
 import { Alert } from "@/components/ui/Alert";
 import { Avatar } from "@/components/ui/Avatar";
 import type { FamilyGroupOption } from "@/components/create/FamilyGroupSelect";
@@ -17,11 +17,13 @@ import { LocationTab } from "./LocationTab";
 import { PhotosTab } from "./PhotosTab";
 import { SharingTab } from "./SharingTab";
 import { TimelineTab } from "./TimelineTab";
+import { TouchesTab } from "./TouchesTab";
 import { VideosTab } from "./VideosTab";
 
 export const EDIT_TABS = [
   { key: "details", label: "Details", Icon: FileText },
   { key: "appearance", label: "Appearance", Icon: Palette },
+  { key: "touches", label: "Personal touches", Icon: Sparkles },
   { key: "photos", label: "Photos", Icon: Images },
   { key: "videos", label: "Videos", Icon: Film },
   { key: "timeline", label: "Timeline", Icon: Clock },
@@ -135,6 +137,7 @@ export function EditShell({
           </h2>
           {active.key === "details" && <DetailsTab memorial={m} isOwner={isOwner} limits={limits} />}
           {active.key === "appearance" && <AppearanceTab memorial={m} limits={limits} />}
+          {active.key === "touches" && <TouchesTab memorial={m} limits={limits} />}
           {active.key === "photos" && <PhotosTab memorial={m} photos={bundle.photos} limits={limits} />}
           {active.key === "videos" && <VideosTab memorial={m} videos={bundle.videos} limits={limits} />}
           {active.key === "timeline" && <TimelineTab memorial={m} events={bundle.timeline} limits={limits} />}

@@ -5,14 +5,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { ImageUploadField } from "@/components/create/ImageUploadField";
+import { HeroStickers } from "@/components/memorial/HeroStickers";
+import { MOTIF_ICONS } from "@/components/memorial/motifs";
+import { PortraitFrame } from "@/components/memorial/PortraitFrame";
 import { Avatar } from "@/components/ui/Avatar";
 import { updateMemorial } from "@/lib/actions/memorial";
 import {
   BACKGROUND_DEFAULTS,
   FONTS,
   FONT_KEYS,
+  FRAMES,
+  FRAME_KEYS,
   HERO_KEYS,
   HERO_LAYOUTS,
+  MAX_STICKERS,
+  MOTIF_KEYS,
+  MOTIF_LABELS,
   SECTION_LABELS,
   THEMES,
   THEME_KEYS,
@@ -20,6 +28,7 @@ import {
   backgroundLayerStyle,
   readAppearance,
   type MemorialAppearance,
+  type MotifKey,
   type SectionKey,
 } from "@/lib/appearance";
 import { lifeYears } from "@/lib/format";
@@ -37,7 +46,7 @@ export function AppearanceTab({ memorial, limits }: { memorial: Memorial; limits
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
-  const canBackground = planAllows(limits, "custom_appearance");
+  const premium = planAllows(limits, "custom_appearance");
 
   function patch(p: Partial<MemorialAppearance>) {
     setA((prev) => ({ ...prev, ...p }));
@@ -58,6 +67,11 @@ export function AppearanceTab({ memorial, limits }: { memorial: Memorial; limits
     patch({ sections: { ...a.sections, hidden } });
   }
 
+  function toggleSticker(key: MotifKey) {
+    if (a.stickers.includes(key)) patch({ stickers: a.stickers.filter((k) => k !== key) });
+    else if (a.stickers.length < MAX_STICKERS) patch({ stickers: [...a.stickers, key] });
+  }
+
   function setBackgroundPath(path: string | null) {
     patch({ background: path ? { image_path: path, blur: a.background?.blur ?? BACKGROUND_DEFAULTS.blur, dim: a.background?.dim ?? BACKGROUND_DEFAULTS.dim } : null });
   }
@@ -66,7 +80,10 @@ export function AppearanceTab({ memorial, limits }: { memorial: Memorial; limits
     setSaved(false);
     setError(null);
     startTransition(async () => {
-      const res = await updateMemorial(memorial.id, memorial.slug, { accent_color: accent, appearance: a });
+      const res = await updateMemorial(memorial.id, memorial.slug, {
+        accent_color: accent,
+        appearance: { theme: a.theme, font: a.font, hero: a.hero, background: a.background, frame: a.frame, stickers: a.stickers, sections: a.sections },
+      });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -85,14 +102,7 @@ export function AppearanceTab({ memorial, limits }: { memorial: Memorial; limits
               const t = THEMES[key];
               const active = a.theme === key;
               return (
-                <button
-                  key={key}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => patch({ theme: key })}
-                  className={cn("group rounded-2xl border p-2.5 text-left transition", active ? "border-gold-400 bg-gold-400/10" : "border-white/10 hover:border-white/25")}
-                >
+                <button key={key} type="button" role="radio" aria-checked={active} onClick={() => patch({ theme: key })} className={cn("group rounded-2xl border p-2.5 text-left transition", active ? "border-gold-400 bg-gold-400/10" : "border-white/10 hover:border-white/25")}>
                   <div className="relative h-16 overflow-hidden rounded-xl" style={{ background: t.swatch.bg }} aria-hidden>
                     <div className="absolute inset-x-2 bottom-2 top-5 rounded-md" style={{ background: t.swatch.surface }} />
                     <div className="absolute left-4 top-7 h-1.5 w-12 rounded-full" style={{ background: t.swatch.text, opacity: 0.85 }} />
@@ -187,13 +197,61 @@ export function AppearanceTab({ memorial, limits }: { memorial: Memorial; limits
           </div>
         </Section>
 
-        <Section title="Background photo" description={canBackground ? "A photo behind the whole page, softened so the words stay easy to read." : "Background photos are part of the Premium and Family plans."}>
-          {!canBackground && (
+        <Section title="Portrait frame" description={premium ? "A decorative frame around the portrait, drawn in the accent colour." : "Portrait frames are part of the Premium and Family plans."}>
+          {!premium && (
+            <div className="mb-4">
+              <PlanNotice feature="Portrait frames" />
+            </div>
+          )}
+          <div className={cn("grid grid-cols-3 gap-3 sm:grid-cols-6", !premium && "pointer-events-none opacity-50")} role="radiogroup" aria-label="Portrait frame">
+            {FRAME_KEYS.map((key) => {
+              const active = a.frame === key;
+              return (
+                <button key={key} type="button" role="radio" aria-checked={active} onClick={() => patch({ frame: key })} className={cn("flex flex-col items-center gap-2 rounded-2xl border px-2 pb-3 pt-4 text-center transition", active ? "border-gold-400 bg-gold-400/10" : "border-white/10 hover:border-white/25")}>
+                  <div className="flex h-16 items-center justify-center">
+                    <PortraitFrame frame={key} size={40}>
+                      <Avatar path={memorial.profile_image_path} name={memorial.full_name} size={40} />
+                    </PortraitFrame>
+                  </div>
+                  <span className="text-xs font-medium text-ivory-100">{FRAMES[key].label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-ivory-500">{FRAMES[a.frame].description}</p>
+        </Section>
+
+        <Section title="Stickers" description={premium ? `Little motifs that float around the header. Choose up to ${MAX_STICKERS}.` : "Stickers are part of the Premium and Family plans."}>
+          {!premium && (
+            <div className="mb-4">
+              <PlanNotice feature="Stickers" />
+            </div>
+          )}
+          <div className={cn("grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-9", !premium && "pointer-events-none opacity-50")} role="group" aria-label="Stickers">
+            {MOTIF_KEYS.map((key) => {
+              const Icon = MOTIF_ICONS[key];
+              const on = a.stickers.includes(key);
+              const full = !on && a.stickers.length >= MAX_STICKERS;
+              return (
+                <button key={key} type="button" aria-pressed={on} disabled={full} title={MOTIF_LABELS[key]} onClick={() => toggleSticker(key)} className={cn("flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[10px] transition", on ? "border-gold-400 bg-gold-400/10 text-gold-300" : "border-white/10 text-ivory-400 hover:border-white/25 hover:text-ivory-100", full && "opacity-40")}>
+                  <Icon size={20} strokeWidth={1.6} />
+                  <span className="truncate">{MOTIF_LABELS[key]}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-ivory-500">
+            {a.stickers.length} of {MAX_STICKERS} chosen.
+          </p>
+        </Section>
+
+        <Section title="Background photo" description={premium ? "A photo behind the whole page, softened so the words stay easy to read." : "Background photos are part of the Premium and Family plans."}>
+          {!premium && (
             <div className="mb-4">
               <PlanNotice feature="Background photos" />
             </div>
           )}
-          <div className={cn("grid gap-6 md:grid-cols-[18rem_1fr]", !canBackground && "pointer-events-none opacity-50")}>
+          <div className={cn("grid gap-6 md:grid-cols-[18rem_1fr]", !premium && "pointer-events-none opacity-50")}>
             <ImageUploadField label="Background" bucket="memorial-cover-images" value={a.background?.image_path ?? null} onChange={setBackgroundPath} shape="wide" altName={memorial.full_name} maxEdge={2400} />
             <div className="space-y-5">
               <RangeField label="Softness" value={a.background?.blur ?? BACKGROUND_DEFAULTS.blur} min={0} max={24} step={2} disabled={!a.background} onChange={(blur) => a.background && patch({ background: { ...a.background, blur } })} />
@@ -307,11 +365,14 @@ function Preview({ memorial, a, accent }: { memorial: Memorial; a: MemorialAppea
           {/* Hero mock */}
           {a.hero === "centered" && (
             <div className="text-center">
-              <div className="h-16 bg-navy-950 bg-cover bg-center" style={cover ? { backgroundImage: `url("${cover}")` } : undefined}>
+              <div className="relative h-16 bg-navy-950 bg-cover bg-center" style={cover ? { backgroundImage: `url("${cover}")` } : undefined}>
                 <div className="h-full w-full bg-gradient-to-t from-navy-900 to-transparent" />
+                <HeroStickers stickers={a.stickers} compact />
               </div>
-              <div className="-mt-7 inline-block rounded-full bg-navy-900 p-1">
-                <Avatar path={memorial.profile_image_path} name={memorial.full_name} size={52} className="ring-2 ring-gold-400/60" />
+              <div className="relative -mt-7 inline-block rounded-full bg-navy-900 p-1">
+                <PortraitFrame frame={a.frame} size={52}>
+                  <Avatar path={memorial.profile_image_path} name={memorial.full_name} size={52} className="ring-2 ring-gold-400/60" />
+                </PortraitFrame>
               </div>
               <h3 className="mt-1 px-3 text-xl leading-tight text-ivory-50">{memorial.full_name}</h3>
               {years && <p className="font-display text-xs tracking-wide text-gold-300">{years}</p>}
@@ -321,8 +382,11 @@ function Preview({ memorial, a, accent }: { memorial: Memorial; a: MemorialAppea
           {a.hero === "cover" && (
             <div className="relative h-28 bg-navy-950 bg-cover bg-center" style={cover ? { backgroundImage: `url("${cover}")` } : undefined}>
               <div className="absolute inset-0 bg-gradient-to-t from-navy-900 via-navy-900/60 to-transparent" />
+              <HeroStickers stickers={a.stickers} compact />
               <div className="absolute bottom-2 left-3 flex items-end gap-2">
-                <Avatar path={memorial.profile_image_path} name={memorial.full_name} size={36} className="ring-2 ring-gold-400/60" />
+                <PortraitFrame frame={a.frame} size={36}>
+                  <Avatar path={memorial.profile_image_path} name={memorial.full_name} size={36} className="ring-2 ring-gold-400/60" />
+                </PortraitFrame>
                 <div>
                   <h3 className="text-lg leading-tight text-ivory-50">{memorial.full_name}</h3>
                   {years && <p className="font-display text-[11px] text-gold-300">{years}</p>}
@@ -331,14 +395,17 @@ function Preview({ memorial, a, accent }: { memorial: Memorial; a: MemorialAppea
             </div>
           )}
           {a.hero === "split" && (
-            <div className="grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3">
-              {portrait ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={portrait} alt="" className="aspect-[4/5] w-full rounded-lg object-cover ring-2 ring-gold-400/60" />
-              ) : (
-                <Avatar path={null} name={memorial.full_name} size={64} />
-              )}
-              <div className="min-w-0">
+            <div className="relative grid grid-cols-[4.5rem_1fr] items-center gap-3 p-3">
+              <HeroStickers stickers={a.stickers} compact />
+              <PortraitFrame frame={a.frame} size={64} shape="rect">
+                {portrait ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={portrait} alt="" className="aspect-[4/5] w-full rounded-lg object-cover ring-2 ring-gold-400/60" />
+                ) : (
+                  <Avatar path={null} name={memorial.full_name} size={64} />
+                )}
+              </PortraitFrame>
+              <div className="relative min-w-0">
                 <h3 className="text-lg leading-tight text-ivory-50">{memorial.full_name}</h3>
                 {years && <p className="font-display text-[11px] text-gold-300">{years}</p>}
                 <p className="mt-1 line-clamp-2 font-display text-xs italic text-ivory-200">&ldquo;{memorial.epitaph}&rdquo;</p>

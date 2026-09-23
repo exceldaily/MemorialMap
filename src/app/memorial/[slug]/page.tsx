@@ -13,6 +13,8 @@ import { VideoSection, toEmbedUrl } from "@/components/memorial/VideoSection";
 import { MemoriesSection } from "@/components/memorial/MemoriesSection";
 import { TimelineSection } from "@/components/memorial/TimelineSection";
 import { FamilySection } from "@/components/memorial/FamilySection";
+import { FavouritesSection } from "@/components/memorial/FavouritesSection";
+import { WordsSection } from "@/components/memorial/WordsSection";
 import { TributeBar } from "@/components/memorial/TributeBar";
 import { recordView } from "@/lib/actions/engagement";
 import { readAppearance, SECTION_LABELS, type SectionKey } from "@/lib/appearance";
@@ -82,8 +84,10 @@ export default async function MemorialPage({ params }: Props) {
   const available: Record<SectionKey, boolean> = {
     location: Boolean(location || memorial.resting_place),
     story: hasStory(memorial),
+    words: Boolean(appearance.words?.text),
     photos: visiblePhotos.length > 0,
     videos: visibleVideos.length > 0,
+    favourites: appearance.favourites.length > 0,
     memories: true,
     timeline: timeline.length > 0,
     family: Boolean(family.length || familyGroup),
@@ -95,6 +99,8 @@ export default async function MemorialPage({ params }: Props) {
   const render: Record<SectionKey, ReactNode> = {
     location: <LocationSection location={location} slug={memorial.slug} restingPlace={memorial.resting_place} />,
     story: <StorySection memorial={memorial} />,
+    words: <WordsSection words={appearance.words} />,
+    favourites: <FavouritesSection favourites={appearance.favourites} firstName={memorial.first_name} />,
     photos: <PhotoGallery photos={visiblePhotos} name={memorial.full_name} />,
     videos: <VideoSection videos={visibleVideos} name={memorial.full_name} />,
     memories: <MemoriesSection memorialId={memorial.id} slug={memorial.slug} name={memorial.first_name} initialMemories={memories} viewerId={viewerId} canManage={canManage} authorName={authorName} />,
@@ -102,6 +108,8 @@ export default async function MemorialPage({ params }: Props) {
     family: <FamilySection family={family} familyGroup={familyGroup} />,
     tributes: <TributeBar memorialId={memorial.id} initialCounts={tributeCounts} signedIn={Boolean(viewerId)} />,
   };
+
+  const song = appearance.song ? { src: appearance.song.storage_path ? publicUrl(appearance.song.storage_path) : null, external: appearance.song.external_url, title: appearance.song.title } : null;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -139,7 +147,7 @@ export default async function MemorialPage({ params }: Props) {
             </p>
           )}
 
-          <MemorialHero memorial={memorial} isSaved={isSaved} signedIn={Boolean(viewerId)} canManage={canManage} layout={appearance.hero} />
+          <MemorialHero memorial={memorial} isSaved={isSaved} signedIn={Boolean(viewerId)} canManage={canManage} layout={appearance.hero} frame={appearance.frame} stickers={appearance.stickers} song={song} />
 
           <div className="mt-10">
             <SectionNav sections={sections} />

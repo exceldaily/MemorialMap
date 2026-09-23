@@ -1,11 +1,16 @@
 import Image from "next/image";
 import { Avatar } from "@/components/ui/Avatar";
-import type { HeroLayout } from "@/lib/appearance";
+import type { FrameKey, HeroLayout, MotifKey } from "@/lib/appearance";
 import { imageUrl } from "@/lib/storage";
 import { lifeYears } from "@/lib/format";
 import { memorialUrl } from "@/lib/site";
 import type { Memorial } from "@/lib/supabase/types";
 import { HeroActions } from "./HeroActions";
+import { HeroStickers } from "./HeroStickers";
+import { PortraitFrame } from "./PortraitFrame";
+import { SongPlayer } from "./SongPlayer";
+
+export type HeroSong = { src: string | null; external: string | null; title: string | null };
 
 export function MemorialHero({
   memorial,
@@ -13,12 +18,18 @@ export function MemorialHero({
   signedIn,
   canManage,
   layout = "centered",
+  frame = "none",
+  stickers = [],
+  song = null,
 }: {
   memorial: Memorial;
   isSaved: boolean;
   signedIn: boolean;
   canManage: boolean;
   layout?: HeroLayout;
+  frame?: FrameKey;
+  stickers?: MotifKey[];
+  song?: HeroSong | null;
 }) {
   const cover = imageUrl(memorial.cover_image_path, { width: 1800, quality: 80 });
   const years = lifeYears(memorial.birth_year, memorial.death_year, memorial.memorial_type);
@@ -43,7 +54,7 @@ export function MemorialHero({
   );
 
   const actions = <HeroActions memorialId={memorial.id} slug={memorial.slug} name={memorial.full_name} url={memorialUrl(memorial.slug)} isSaved={isSaved} signedIn={signedIn} canManage={canManage} />;
-
+  const player = song && (song.src || song.external) ? <SongPlayer src={song.src} external={song.external} title={song.title} name={memorial.first_name} /> : null;
   const yearsLabel = memorial.memorial_type === "living" ? "Born" : "Years";
 
   /* ---- Full cover: tall photo, name across the bottom ------------------ */
@@ -53,11 +64,14 @@ export function MemorialHero({
         <div className="relative h-[62vh] min-h-[420px] max-h-[720px] w-full overflow-hidden bg-navy-950">
           {coverLayer}
           <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-navy-900 via-navy-900/65 to-navy-950/10" />
+          <HeroStickers stickers={stickers} />
           {demoBadge}
-          <div className="container-page absolute inset-x-0 bottom-0 pb-8 sm:pb-10">
+          <div className="container-page absolute inset-x-0 bottom-0 z-[2] pb-8 sm:pb-10">
             <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-end sm:gap-6">
               <div className="shrink-0 rounded-full bg-navy-900 p-1.5 shadow-soft">
-                <Avatar path={memorial.profile_image_path} name={memorial.full_name} size={120} priority className="ring-[3px] ring-gold-400/60" />
+                <PortraitFrame frame={frame} size={120}>
+                  <Avatar path={memorial.profile_image_path} name={memorial.full_name} size={120} priority className="ring-[3px] ring-gold-400/60" />
+                </PortraitFrame>
               </div>
               <div className="min-w-0 pb-1">
                 <h1 className="max-w-4xl text-4xl leading-[1.05] text-ivory-50 sm:text-5xl md:text-6xl animate-fade-up">{memorial.full_name}</h1>
@@ -75,6 +89,7 @@ export function MemorialHero({
           {memorial.epitaph ? <p className="max-w-2xl font-display text-2xl italic leading-snug text-ivory-200 sm:text-3xl">&ldquo;{memorial.epitaph}&rdquo;</p> : <span />}
           <div className="shrink-0">{actions}</div>
         </div>
+        {player && <div className="container-page mt-5">{player}</div>}
       </header>
     );
   }
@@ -88,18 +103,21 @@ export function MemorialHero({
           <div className="absolute inset-0 opacity-45">{coverLayer}</div>
           <div className="absolute inset-0 bg-gradient-to-b from-navy-950/40 via-navy-900/80 to-navy-900" />
         </div>
+        <HeroStickers stickers={stickers} />
         {demoBadge}
-        <div className="container-page relative grid gap-8 py-12 sm:py-16 md:grid-cols-[minmax(0,20rem)_1fr] md:items-center md:gap-12">
+        <div className="container-page relative z-[2] grid gap-8 py-12 sm:py-16 md:grid-cols-[minmax(0,20rem)_1fr] md:items-center md:gap-12">
           <div className="mx-auto w-full max-w-[20rem]">
-            {portrait ? (
-              <div className="relative aspect-[4/5] overflow-hidden rounded-3xl shadow-soft ring-[3px] ring-gold-400/60 animate-fade-in">
-                <Image src={portrait} alt={`Portrait of ${memorial.full_name}`} fill priority unoptimized sizes="(min-width: 768px) 20rem, 80vw" className="object-cover" />
-              </div>
-            ) : (
-              <div className="flex justify-center">
-                <Avatar path={null} name={memorial.full_name} size={220} className="ring-[3px] ring-gold-400/60" />
-              </div>
-            )}
+            <PortraitFrame frame={frame} size={320} shape="rect" className="w-full">
+              {portrait ? (
+                <div className="relative aspect-[4/5] overflow-hidden rounded-3xl shadow-soft ring-[3px] ring-gold-400/60 animate-fade-in">
+                  <Image src={portrait} alt={`Portrait of ${memorial.full_name}`} fill priority unoptimized sizes="(min-width: 768px) 20rem, 80vw" className="object-cover" />
+                </div>
+              ) : (
+                <div className="flex justify-center">
+                  <Avatar path={null} name={memorial.full_name} size={220} className="ring-[3px] ring-gold-400/60" />
+                </div>
+              )}
+            </PortraitFrame>
           </div>
           <div className="text-center md:text-left">
             <h1 className="text-4xl leading-[1.05] text-ivory-50 sm:text-5xl md:text-6xl animate-fade-up">{memorial.full_name}</h1>
@@ -111,6 +129,7 @@ export function MemorialHero({
             {memorial.nickname && <p className="mt-1 text-sm text-ivory-400">&ldquo;Known as {memorial.nickname}&rdquo;</p>}
             {memorial.epitaph && <p className="mt-5 max-w-2xl font-display text-2xl italic leading-snug text-ivory-200 sm:text-3xl">&ldquo;{memorial.epitaph}&rdquo;</p>}
             <div className="mt-7 flex justify-center md:justify-start">{actions}</div>
+            {player && <div className="mt-5 flex justify-center md:justify-start">{player}</div>}
           </div>
         </div>
       </header>
@@ -123,12 +142,15 @@ export function MemorialHero({
       <div className="relative h-[42vh] min-h-[280px] max-h-[520px] w-full overflow-hidden bg-navy-950">
         {coverLayer}
         <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-navy-900 via-navy-900/55 to-navy-950/25" />
+        <HeroStickers stickers={stickers} />
         {demoBadge}
       </div>
 
-      <div className="container-page relative -mt-[72px] flex flex-col items-center text-center">
+      <div className="container-page relative z-[2] -mt-[72px] flex flex-col items-center text-center">
         <div className="rounded-full bg-navy-900 p-1.5 shadow-soft">
-          <Avatar path={memorial.profile_image_path} name={memorial.full_name} size={144} priority className="ring-[3px] ring-gold-400/60" />
+          <PortraitFrame frame={frame} size={144}>
+            <Avatar path={memorial.profile_image_path} name={memorial.full_name} size={144} priority className="ring-[3px] ring-gold-400/60" />
+          </PortraitFrame>
         </div>
         <h1 className="mt-5 max-w-3xl text-4xl leading-[1.05] text-ivory-50 sm:text-5xl md:text-6xl animate-fade-up">{memorial.full_name}</h1>
         {years && (
@@ -143,6 +165,7 @@ export function MemorialHero({
           </p>
         )}
         <div className="mt-7">{actions}</div>
+        {player && <div className="mt-5 flex w-full justify-center">{player}</div>}
       </div>
     </header>
   );

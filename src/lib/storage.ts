@@ -4,7 +4,8 @@ export type Bucket =
   | "memorial-cover-images"
   | "memorial-gallery"
   | "memorial-memory-photos"
-  | "memorial-videos";
+  | "memorial-videos"
+  | "memorial-audio";
 
 const BASE = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
 /** Supabase image transformation is a paid feature; opt in with NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORMS=true. */
@@ -41,4 +42,5 @@ export const UPLOAD_LIMITS: Record<Bucket, { maxBytes: number; mimes: string[] }
   "memorial-gallery": { maxBytes: 12 * 1024 * 1024, mimes: ["image/jpeg", "image/png", "image/webp"] },
   "memorial-memory-photos": { maxBytes: 8 * 1024 * 1024, mimes: ["image/jpeg", "image/png", "image/webp"] },
   "memorial-videos": { maxBytes: 200 * 1024 * 1024, mimes: ["video/mp4", "video/webm", "video/quicktime"] },
+  "memorial-audio": { maxBytes: 20 * 1024 * 1024, mimes: ["audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/ogg", "audio/wav", "audio/webm"] },
 };

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { createSupabaseAdminClient, getSessionUser } from "@/lib/supabase/server";
 import type { CheckLocationResult, CreateMemorialInput, Json, FamilyGroup, Memorial, MemorialAdmin, MemorialPhoto, MemorialVideo, TimelineEvent, FamilyRelationship } from "@/lib/supabase/types";
 import { errorMessage } from "@/lib/utils";
-import { FONT_KEYS, HERO_KEYS, SECTION_KEYS, THEME_KEYS } from "@/lib/appearance";
+import { FONT_KEYS, FRAME_KEYS, HERO_KEYS, MAX_FAVOURITES, MAX_STICKERS, MOTIF_KEYS, SECTION_KEYS, THEME_KEYS } from "@/lib/appearance";
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -37,7 +37,19 @@ const appearanceSchema = z
       .object({ image_path: z.string().max(400).nullable().optional(), blur: z.number().min(0).max(24).optional(), dim: z.number().min(0).max(90).optional() })
       .nullable()
       .optional(),
-    sections: z.object({ order: z.array(sectionKeySchema).max(8).optional(), hidden: z.array(sectionKeySchema).max(8).optional() }).optional(),
+    frame: z.enum(FRAME_KEYS).optional(),
+    stickers: z.array(z.enum(MOTIF_KEYS)).max(MAX_STICKERS).optional(),
+    song: z
+      .object({
+        storage_path: z.string().max(400).nullable().optional(),
+        external_url: z.string().trim().max(500).regex(/^https:\/\/\S+$/i, "Song links must start with https://").nullable().optional(),
+        title: z.string().trim().max(120).nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+    words: z.object({ text: z.string().trim().min(1).max(600), attribution: z.string().trim().max(120).nullable().optional() }).nullable().optional(),
+    favourites: z.array(z.object({ icon: z.enum(MOTIF_KEYS), label: z.string().trim().min(1).max(40), value: z.string().trim().min(1).max(120) })).max(MAX_FAVOURITES).optional(),
+    sections: z.object({ order: z.array(sectionKeySchema).max(12).optional(), hidden: z.array(sectionKeySchema).max(12).optional() }).optional(),
   })
   .strict();
 
@@ -167,13 +179,21 @@ export async function updateMemorial(id: string, slug: string, fields: UpdateMem
   if (p.resting_place !== undefined) update.resting_place = p.resting_place || null;
   if (p.accent_color !== undefined) update.accent_color = p.accent_color || null;
   if (p.appearance !== undefined) {
-    const next = { ...p.appearance };
-    if (next.background?.image_path) {
-      // Background photos belong to the upgraded plans; drop them quietly otherwise.
+    // Each editor tab sends only the keys it owns, so merge over what is stored.
+    const patch = { ...p.appearance };
+    const wantsPremium = Boolean(patch.background?.image_path || patch.song?.storage_path || patch.song?.external_url || (patch.frame && patch.frame !== "none") || patch.stickers?.length);
+    if (wantsPremium) {
+      // Background photos, songs, frames and stickers belong to the upgraded plans; drop them quietly otherwise.
       const { data: limits } = await supabase.rpc("plan_limits", {});
-      if ((limits as Record<string, unknown> | null)?.custom_appearance === false) next.background = null;
+      if ((limits as Record<string, unknown> | null)?.custom_appearance === false) {
+        patch.background = null;
+        patch.song = null;
+        patch.frame = "none";
+        patch.stickers = [];
+      }
     }
-    update.appearance = next as Json;
+    const stored = current.appearance && typeof current.appearance === "object" && !Array.isArray(current.appearance) ? (current.appearance as Record<string, Json>) : {};
+    update.appearance = { ...stored, ...(patch as unknown as Record<string, Json>) } as Json;
   }
   if (p.family_group_id !== undefined) update.family_group_id = p.family_group_id;
   if (p.privacy !== undefined) {

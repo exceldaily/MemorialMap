@@ -16,10 +16,27 @@ export type FontKey = (typeof FONT_KEYS)[number];
 export const HERO_KEYS = ["centered", "cover", "split"] as const;
 export type HeroLayout = (typeof HERO_KEYS)[number];
 
-export const SECTION_KEYS = ["location", "story", "photos", "videos", "memories", "timeline", "family", "tributes"] as const;
+export const FRAME_KEYS = ["none", "gilded", "halo", "vintage", "laurel", "petals"] as const;
+export type FrameKey = (typeof FRAME_KEYS)[number];
+
+/** Decorative motifs, used both as hero stickers and as icons on favourite-thing tiles. Icons live in components/memorial/motifs.ts. */
+export const MOTIF_KEYS = [
+  "flowers", "dove", "stars", "candle", "leaves", "music", "heart", "waves", "sun", "moon", "butterfly", "anchor",
+  "paw", "trophy", "guitar", "plane", "fish", "pine", "mountain", "camera", "book", "coffee", "car", "cross",
+  "rainbow", "cake", "rocket", "feather", "wine", "home", "film", "gamepad", "sprout", "bike", "sailboat", "piano",
+] as const;
+export type MotifKey = (typeof MOTIF_KEYS)[number];
+
+export const SECTION_KEYS = ["location", "story", "words", "photos", "videos", "favourites", "memories", "timeline", "family", "tributes"] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 
+export const MAX_STICKERS = 6;
+export const MAX_FAVOURITES = 8;
+
 export type MemorialBackground = { image_path: string | null; blur: number; dim: number };
+export type MemorialSong = { storage_path: string | null; external_url: string | null; title: string | null };
+export type MemorialWords = { text: string; attribution: string | null };
+export type MemorialFavourite = { icon: MotifKey; label: string; value: string };
 
 export type MemorialAppearance = {
   theme: ThemeKey;
@@ -27,6 +44,16 @@ export type MemorialAppearance = {
   hero: HeroLayout;
   /** Background photo behind the whole page. Upgraded plans only. */
   background: MemorialBackground | null;
+  /** Decorative frame around the portrait. Upgraded plans only. */
+  frame: FrameKey;
+  /** Motifs floating around the header. Upgraded plans only. */
+  stickers: MotifKey[];
+  /** Their song: an uploaded track and/or a link to a streaming service. Upgraded plans only. Never autoplays. */
+  song: MemorialSong | null;
+  /** A favourite saying, verse or quote in their own words. */
+  words: MemorialWords | null;
+  /** Favourite things, shown as tiles. */
+  favourites: MemorialFavourite[];
   sections: { order: SectionKey[]; hidden: SectionKey[] };
 };
 
@@ -52,11 +79,28 @@ export const HERO_LAYOUTS: Record<HeroLayout, { label: string; description: stri
   split: { label: "Side by side", description: "A large portrait beside the name and epitaph." },
 };
 
+export const FRAMES: Record<FrameKey, { label: string; description: string }> = {
+  none: { label: "None", description: "A simple ring in the accent colour." },
+  gilded: { label: "Gilded", description: "A double gold border with four small ornaments." },
+  halo: { label: "Halo", description: "A soft glow of light around the portrait." },
+  vintage: { label: "Locket", description: "A cream mat and dark edge, like an old locket." },
+  laurel: { label: "Laurel", description: "Two branches of leaves either side." },
+  petals: { label: "Petals", description: "A wreath of petals all the way round." },
+};
+
+export const MOTIF_LABELS: Record<MotifKey, string> = {
+  flowers: "Flowers", dove: "Dove", stars: "Stars", candle: "Candle", leaves: "Leaves", music: "Music", heart: "Heart", waves: "Waves", sun: "Sun", moon: "Moon", butterfly: "Butterfly", anchor: "Anchor",
+  paw: "Paw print", trophy: "Trophy", guitar: "Guitar", plane: "Plane", fish: "Fishing", pine: "Pine tree", mountain: "Mountains", camera: "Camera", book: "Books", coffee: "Coffee", car: "Car", cross: "Cross",
+  rainbow: "Rainbow", cake: "Cake", rocket: "Rocket", feather: "Feather", wine: "Wine", home: "Home", film: "Film", gamepad: "Games", sprout: "Sprout", bike: "Bicycle", sailboat: "Sailing", piano: "Piano",
+};
+
 export const SECTION_LABELS: Record<SectionKey, string> = {
   location: "Location",
   story: "Life Story",
+  words: "Their Words",
   photos: "Photos",
   videos: "Videos",
+  favourites: "Their World",
   memories: "Memories",
   timeline: "Timeline",
   family: "Family",
@@ -68,6 +112,11 @@ export const DEFAULT_APPEARANCE: MemorialAppearance = {
   font: "classic",
   hero: "centered",
   background: null,
+  frame: "none",
+  stickers: [],
+  song: null,
+  words: null,
+  favourites: [],
   sections: { order: [...SECTION_KEYS], hidden: [] },
 };
 
@@ -85,12 +134,17 @@ function record(v: unknown): Record<string, unknown> {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 }
 
+function text(v: unknown, max: number): string | null {
+  return typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null;
+}
+
 /** Normalises whatever is stored in `memorials.appearance` into a complete, valid object. */
 export function readAppearance(raw: Json | null | undefined): MemorialAppearance {
   const r = record(raw);
   const theme = isKey(THEME_KEYS, r.theme) ? r.theme : DEFAULT_APPEARANCE.theme;
   const font = isKey(FONT_KEYS, r.font) ? r.font : DEFAULT_APPEARANCE.font;
   const hero = isKey(HERO_KEYS, r.hero) ? r.hero : DEFAULT_APPEARANCE.hero;
+  const frame = isKey(FRAME_KEYS, r.frame) ? r.frame : DEFAULT_APPEARANCE.frame;
 
   let background: MemorialBackground | null = null;
   const b = record(r.background);
@@ -98,12 +152,40 @@ export function readAppearance(raw: Json | null | undefined): MemorialAppearance
     background = { image_path: b.image_path, blur: clamp(b.blur, 0, 24, BACKGROUND_DEFAULTS.blur), dim: clamp(b.dim, 0, 90, BACKGROUND_DEFAULTS.dim) };
   }
 
-  const s = record(r.sections);
-  const rawOrder = Array.isArray(s.order) ? s.order.filter((k): k is SectionKey => isKey(SECTION_KEYS, k)) : [];
-  const order = [...new Set<SectionKey>([...rawOrder, ...SECTION_KEYS])];
-  const hidden = Array.isArray(s.hidden) ? [...new Set(s.hidden.filter((k): k is SectionKey => isKey(SECTION_KEYS, k)))] : [];
+  const stickers = Array.isArray(r.stickers) ? [...new Set(r.stickers.filter((k): k is MotifKey => isKey(MOTIF_KEYS, k)))].slice(0, MAX_STICKERS) : [];
 
-  return { theme, font, hero, background, sections: { order, hidden } };
+  let song: MemorialSong | null = null;
+  const s = record(r.song);
+  const storage_path = text(s.storage_path, 400);
+  const external_url = text(s.external_url, 500);
+  if (storage_path || (external_url && /^https:\/\//i.test(external_url))) {
+    song = { storage_path, external_url: external_url && /^https:\/\//i.test(external_url) ? external_url : null, title: text(s.title, 120) };
+  }
+
+  let words: MemorialWords | null = null;
+  const w = record(r.words);
+  const wordsText = text(w.text, 600);
+  if (wordsText) words = { text: wordsText, attribution: text(w.attribution, 120) };
+
+  const favourites: MemorialFavourite[] = Array.isArray(r.favourites)
+    ? r.favourites
+        .map((f) => {
+          const o = record(f);
+          const label = text(o.label, 40);
+          const value = text(o.value, 120);
+          if (!label || !value) return null;
+          return { icon: isKey(MOTIF_KEYS, o.icon) ? o.icon : "heart", label, value } satisfies MemorialFavourite;
+        })
+        .filter((f): f is MemorialFavourite => f !== null)
+        .slice(0, MAX_FAVOURITES)
+    : [];
+
+  const sec = record(r.sections);
+  const rawOrder = Array.isArray(sec.order) ? sec.order.filter((k): k is SectionKey => isKey(SECTION_KEYS, k)) : [];
+  const order = [...new Set<SectionKey>([...rawOrder, ...SECTION_KEYS])];
+  const hidden = Array.isArray(sec.hidden) ? [...new Set(sec.hidden.filter((k): k is SectionKey => isKey(SECTION_KEYS, k)))] : [];
+
+  return { theme, font, hero, background, frame, stickers, song, words, favourites, sections: { order, hidden } };
 }
 
 /** Re-tints the gold scale from a single accent colour via CSS variables on the page wrapper. */
@@ -126,4 +208,26 @@ export function backgroundLayerStyle(b: MemorialBackground, url: string): CSSPro
     backgroundImage: `linear-gradient(${top}, ${bottom}), url("${url}")`,
     filter: b.blur ? `blur(${b.blur}px)` : undefined,
   };
+}
+
+/** Which streaming service a song link points at, for the "Listen on …" button. */
+export function songProvider(url: string): string {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    if (host.includes("spotify.com")) return "Spotify";
+    if (host.includes("youtube.com") || host === "youtu.be") return "YouTube";
+    if (host.includes("music.apple.com")) return "Apple Music";
+    if (host.includes("soundcloud.com")) return "SoundCloud";
+    if (host.includes("bandcamp.com")) return "Bandcamp";
+    if (host.includes("tidal.com")) return "TIDAL";
+    if (host.includes("deezer.com")) return "Deezer";
+    return host;
+  } catch {
+    return "the link";
+  }
+}
+
+/** A direct audio file link can play in the page; anything else opens the service. */
+export function isDirectAudioUrl(url: string): boolean {
+  return /\.(mp3|m4a|aac|ogg|wav|webm)(\?.*)?$/i.test(url);
 }

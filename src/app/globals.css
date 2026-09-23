@@ -484,3 +484,66 @@ h3,
 .memorial-page.is-light ::selection {
   background: rgb(0 0 0 / 0.12);
 }
+
+/* Personal touches ------------------------------------------------------- */
+
+/* Stickers drift gently; reduced-motion users get them still (see the global rule above). */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+.animate-float {
+  animation: float 5.5s ease-in-out infinite;
+}
+
+/* Lighting a candle: a flame rises from the emoji and fades, and lit candles keep a soft flicker. */
+@keyframes candle-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.4);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -64px) scale(1.5);
+  }
+}
+.candle-burst {
+  position: absolute;
+  left: 50%;
+  top: 34px;
+  width: 26px;
+  height: 40px;
+  border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+  background: radial-gradient(ellipse at 50% 70%, #fff4c2 0%, #f7c65a 35%, rgb(234 138 46 / 0.85) 65%, transparent 100%);
+  filter: blur(0.5px);
+  pointer-events: none;
+  animation: candle-burst 1.1s ease-out forwards;
+}
+@keyframes candle-flicker {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgb(247 198 90 / 0.55));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgb(247 198 90 / 0.9));
+    transform: scale(1.04);
+  }
+}
+.candle-lit {
+  animation: candle-flicker 2.2s ease-in-out infinite;
+}
+.candle-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(60% 55% at 50% 30%, rgb(247 198 90 / 0.16) 0%, transparent 70%);
+}
