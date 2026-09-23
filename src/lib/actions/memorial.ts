@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseAdminClient, getSessionUser } from "@/lib/supabase/server";
-import type { CheckLocationResult, CreateMemorialInput, FamilyGroup, Memorial, MemorialAdmin, MemorialPhoto, MemorialVideo, TimelineEvent, FamilyRelationship } from "@/lib/supabase/types";
+import type { CheckLocationResult, CreateMemorialInput, Json, FamilyGroup, Memorial, MemorialAdmin, MemorialPhoto, MemorialVideo, TimelineEvent, FamilyRelationship } from "@/lib/supabase/types";
 import { errorMessage } from "@/lib/utils";
+import { FONT_KEYS, HERO_KEYS, SECTION_KEYS, THEME_KEYS } from "@/lib/appearance";
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -25,6 +26,20 @@ const accentColor = z
   .regex(/^#([0-9a-fA-F]{6})$/, "Accent colour must be a hex value like #d3b877")
   .nullable()
   .optional();
+
+const sectionKeySchema = z.enum(SECTION_KEYS);
+const appearanceSchema = z
+  .object({
+    theme: z.enum(THEME_KEYS).optional(),
+    font: z.enum(FONT_KEYS).optional(),
+    hero: z.enum(HERO_KEYS).optional(),
+    background: z
+      .object({ image_path: z.string().max(400).nullable().optional(), blur: z.number().min(0).max(24).optional(), dim: z.number().min(0).max(90).optional() })
+      .nullable()
+      .optional(),
+    sections: z.object({ order: z.array(sectionKeySchema).max(8).optional(), hidden: z.array(sectionKeySchema).max(8).optional() }).optional(),
+  })
+  .strict();
 
 const memorialFieldsSchema = z.object({
   memorial_type: memorialTypeSchema.optional(),
@@ -104,7 +119,7 @@ export async function createMemorialDraft(input: CreateMemorialInput): Promise<A
   return { ok: true, data: memorial };
 }
 
-const updateSchema = memorialFieldsSchema.partial().extend({ accent_color: accentColor });
+const updateSchema = memorialFieldsSchema.partial().extend({ accent_color: accentColor, appearance: appearanceSchema.optional() });
 export type UpdateMemorialFields = z.infer<typeof updateSchema>;
 
 export async function updateMemorial(id: string, slug: string, fields: UpdateMemorialFields): Promise<ActionResult<Memorial>> {
@@ -151,6 +166,15 @@ export async function updateMemorial(id: string, slug: string, fields: UpdateMem
   if (p.cover_image_path !== undefined) update.cover_image_path = p.cover_image_path || null;
   if (p.resting_place !== undefined) update.resting_place = p.resting_place || null;
   if (p.accent_color !== undefined) update.accent_color = p.accent_color || null;
+  if (p.appearance !== undefined) {
+    const next = { ...p.appearance };
+    if (next.background?.image_path) {
+      // Background photos belong to the upgraded plans; drop them quietly otherwise.
+      const { data: limits } = await supabase.rpc("plan_limits", {});
+      if ((limits as Record<string, unknown> | null)?.custom_appearance === false) next.background = null;
+    }
+    update.appearance = next as Json;
+  }
   if (p.family_group_id !== undefined) update.family_group_id = p.family_group_id;
   if (p.privacy !== undefined) {
     if (current.owner_id !== user.id) return { ok: false, error: "Only the owner can change who can see this memorial." };

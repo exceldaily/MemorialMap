@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ExternalLink, Images, Film, Clock, Users, MapPin, QrCode, ShieldCheck, Trash2, FileText } from "lucide-react";
+import { AlertTriangle, ExternalLink, Images, Film, Clock, Users, MapPin, Palette, QrCode, ShieldCheck, Trash2, FileText } from "lucide-react";
 import { Alert } from "@/components/ui/Alert";
 import { Avatar } from "@/components/ui/Avatar";
 import type { FamilyGroupOption } from "@/components/create/FamilyGroupSelect";
@@ -9,6 +9,7 @@ import { lifeYears } from "@/lib/format";
 import type { MemorialStatus } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 import { AdminsTab } from "./AdminsTab";
+import { AppearanceTab } from "./AppearanceTab";
 import { DangerTab } from "./DangerTab";
 import { DetailsTab } from "./DetailsTab";
 import { FamilyTab } from "./FamilyTab";
@@ -20,6 +21,7 @@ import { VideosTab } from "./VideosTab";
 
 export const EDIT_TABS = [
   { key: "details", label: "Details", Icon: FileText },
+  { key: "appearance", label: "Appearance", Icon: Palette },
   { key: "photos", label: "Photos", Icon: Images },
   { key: "videos", label: "Videos", Icon: Film },
   { key: "timeline", label: "Timeline", Icon: Clock },
@@ -132,6 +134,7 @@ export function EditShell({
             {active.label}
           </h2>
           {active.key === "details" && <DetailsTab memorial={m} isOwner={isOwner} limits={limits} />}
+          {active.key === "appearance" && <AppearanceTab memorial={m} limits={limits} />}
           {active.key === "photos" && <PhotosTab memorial={m} photos={bundle.photos} limits={limits} />}
           {active.key === "videos" && <VideosTab memorial={m} videos={bundle.videos} limits={limits} />}
           {active.key === "timeline" && <TimelineTab memorial={m} events={bundle.timeline} limits={limits} />}

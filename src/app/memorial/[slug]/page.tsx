@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Footer } from "@/components/layout/Footer";
 import { MemorialHero } from "@/components/memorial/MemorialHero";
+import { MemorialThemeFrame } from "@/components/memorial/MemorialThemeFrame";
 import { SectionNav, type SectionLink } from "@/components/memorial/SectionNav";
 import { LocationSection } from "@/components/memorial/LocationSection";
 import { StorySection, hasStory } from "@/components/memorial/StorySection";
@@ -13,6 +15,7 @@ import { TimelineSection } from "@/components/memorial/TimelineSection";
 import { FamilySection } from "@/components/memorial/FamilySection";
 import { TributeBar } from "@/components/memorial/TributeBar";
 import { recordView } from "@/lib/actions/engagement";
+import { readAppearance, SECTION_LABELS, type SectionKey } from "@/lib/appearance";
 import { getMemorialBySlug, canManageRole } from "@/lib/queries/memorial";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { lifeYears, truncate } from "@/lib/format";
@@ -74,15 +77,31 @@ export default async function MemorialPage({ params }: Props) {
   const visiblePhotos = photos.filter((p) => p.status === "approved" || (canManage && p.status === "pending"));
   const visibleVideos = videos.filter((v) => (v.status === "approved" || (canManage && v.status === "pending")) && (v.storage_path || (v.external_url && toEmbedUrl(v.external_url))));
 
-  const sections: SectionLink[] = [];
-  if (location || memorial.resting_place) sections.push({ id: "location", label: "Location" });
-  if (hasStory(memorial)) sections.push({ id: "story", label: "Life Story" });
-  if (visiblePhotos.length) sections.push({ id: "photos", label: "Photos" });
-  if (visibleVideos.length) sections.push({ id: "videos", label: "Videos" });
-  sections.push({ id: "memories", label: "Memories" });
-  if (timeline.length) sections.push({ id: "timeline", label: "Timeline" });
-  if (family.length || familyGroup) sections.push({ id: "family", label: "Family" });
-  sections.push({ id: "tributes", label: "Tributes" });
+  // Which sections have anything to show, keyed so the owner's chosen order and hidden list can be applied.
+  const appearance = readAppearance(memorial.appearance);
+  const available: Record<SectionKey, boolean> = {
+    location: Boolean(location || memorial.resting_place),
+    story: hasStory(memorial),
+    photos: visiblePhotos.length > 0,
+    videos: visibleVideos.length > 0,
+    memories: true,
+    timeline: timeline.length > 0,
+    family: Boolean(family.length || familyGroup),
+    tributes: true,
+  };
+  const order = appearance.sections.order.filter((k) => available[k] && !appearance.sections.hidden.includes(k));
+  const sections: SectionLink[] = order.map((k) => ({ id: k, label: SECTION_LABELS[k] }));
+
+  const render: Record<SectionKey, ReactNode> = {
+    location: <LocationSection location={location} slug={memorial.slug} restingPlace={memorial.resting_place} />,
+    story: <StorySection memorial={memorial} />,
+    photos: <PhotoGallery photos={visiblePhotos} name={memorial.full_name} />,
+    videos: <VideoSection videos={visibleVideos} name={memorial.full_name} />,
+    memories: <MemoriesSection memorialId={memorial.id} slug={memorial.slug} name={memorial.first_name} initialMemories={memories} viewerId={viewerId} canManage={canManage} authorName={authorName} />,
+    timeline: <TimelineSection events={timeline} />,
+    family: <FamilySection family={family} familyGroup={familyGroup} />,
+    tributes: <TributeBar memorialId={memorial.id} initialCounts={tributeCounts} signedIn={Boolean(viewerId)} />,
+  };
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -99,43 +118,40 @@ export default async function MemorialPage({ params }: Props) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <main className="min-h-screen">
-        {memorial.status === "draft" && (
-          <p className="border-b border-gold-400/20 bg-gold-400/10 px-4 py-2 text-center text-xs text-gold-300">
-            This memorial is a draft — only you and the people you invite can see it.{" "}
-            <Link href={`/memorial/${memorial.slug}/edit`} className="underline">
-              Continue editing
-            </Link>
-          </p>
-        )}
-        {memorial.status === "suspended" && (
-          <p className="border-b border-danger-500/30 bg-danger-500/10 px-4 py-2 text-center text-xs text-danger-400">
-            This memorial is currently under review and hidden from visitors.{memorial.suspended_reason ? ` Reason: ${memorial.suspended_reason}` : ""}
-          </p>
-        )}
-        {memorial.privacy !== "public" && memorial.status === "published" && canManage && (
-          <p className="border-b border-white/5 bg-white/3 px-4 py-2 text-center text-xs text-ivory-400">
-            {memorial.privacy === "unlisted" ? "Unlisted — visible only to people with the link." : "Private — visible only to the family."}
-          </p>
-        )}
+      <MemorialThemeFrame appearance={memorial.appearance} accent={memorial.accent_color}>
+        <main className="min-h-screen">
+          {memorial.status === "draft" && (
+            <p className="border-b border-gold-400/20 bg-gold-400/10 px-4 py-2 text-center text-xs text-gold-300">
+              This memorial is a draft — only you and the people you invite can see it.{" "}
+              <Link href={`/memorial/${memorial.slug}/edit`} className="underline">
+                Continue editing
+              </Link>
+            </p>
+          )}
+          {memorial.status === "suspended" && (
+            <p className="border-b border-danger-500/30 bg-danger-500/10 px-4 py-2 text-center text-xs text-danger-400">
+              This memorial is currently under review and hidden from visitors.{memorial.suspended_reason ? ` Reason: ${memorial.suspended_reason}` : ""}
+            </p>
+          )}
+          {memorial.privacy !== "public" && memorial.status === "published" && canManage && (
+            <p className="border-b border-white/5 bg-white/3 px-4 py-2 text-center text-xs text-ivory-400">
+              {memorial.privacy === "unlisted" ? "Unlisted — visible only to people with the link." : "Private — visible only to the family."}
+            </p>
+          )}
 
-        <MemorialHero memorial={memorial} isSaved={isSaved} signedIn={Boolean(viewerId)} canManage={canManage} />
+          <MemorialHero memorial={memorial} isSaved={isSaved} signedIn={Boolean(viewerId)} canManage={canManage} layout={appearance.hero} />
 
-        <div className="mt-10">
-          <SectionNav sections={sections} />
-        </div>
+          <div className="mt-10">
+            <SectionNav sections={sections} />
+          </div>
 
-        <div className="container-page space-y-20 py-12 sm:space-y-24 sm:py-16">
-          <LocationSection location={location} slug={memorial.slug} restingPlace={memorial.resting_place} />
-          <StorySection memorial={memorial} />
-          <PhotoGallery photos={visiblePhotos} name={memorial.full_name} />
-          <VideoSection videos={visibleVideos} name={memorial.full_name} />
-          <MemoriesSection memorialId={memorial.id} slug={memorial.slug} name={memorial.first_name} initialMemories={memories} viewerId={viewerId} canManage={canManage} authorName={authorName} />
-          <TimelineSection events={timeline} />
-          <FamilySection family={family} familyGroup={familyGroup} />
-          <TributeBar memorialId={memorial.id} initialCounts={tributeCounts} signedIn={Boolean(viewerId)} />
-        </div>
-      </main>
+          <div className="container-page space-y-20 py-12 sm:space-y-24 sm:py-16">
+            {order.map((k) => (
+              <Fragment key={k}>{render[k]}</Fragment>
+            ))}
+          </div>
+        </main>
+      </MemorialThemeFrame>
       <Footer />
     </>
   );

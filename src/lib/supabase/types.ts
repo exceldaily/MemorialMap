@@ -63,6 +63,7 @@ export type Memorial = {
   profile_image_path: string | null;
   cover_image_path: string | null;
   accent_color: string | null;
+  appearance: Json;
   resting_place: string | null;
   privacy: PrivacyLevel;
   status: MemorialStatus;

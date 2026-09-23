@@ -272,3 +272,215 @@ h3,
   scrollbar-width: thin;
   scrollbar-color: rgb(255 255 255 / 0.15) transparent;
 }
+
+/* Memorial page themes --------------------------------------------------
+   A memorial's theme re-tints the design tokens on its page wrapper only, so
+   every component inside picks up the palette without knowing about themes.
+   Values are managed in src/lib/appearance.ts; keep the two in step. */
+.memorial-page {
+  position: relative;
+  isolation: isolate;
+  background: var(--color-navy-900);
+  color: var(--color-ivory-100);
+}
+.memorial-page.has-bg {
+  background: transparent;
+}
+.memorial-page .memorial-bg {
+  position: fixed;
+  inset: -32px;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+}
+.memorial-page .memorial-bg.is-inline {
+  position: absolute;
+}
+
+/* Lettering */
+.memorial-page[data-font="script"] {
+  --font-serif: "Dancing Script", "Cormorant Garamond", cursive;
+}
+.memorial-page[data-font="script"] h1,
+.memorial-page[data-font="script"] h2,
+.memorial-page[data-font="script"] h3,
+.memorial-page[data-font="script"] .font-display {
+  letter-spacing: 0;
+}
+.memorial-page[data-font="modern"] {
+  --font-serif: "Montserrat", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+.memorial-page[data-font="modern"] h1,
+.memorial-page[data-font="modern"] h2,
+.memorial-page[data-font="modern"] h3,
+.memorial-page[data-font="modern"] .font-display {
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+
+/* Starlight: midnight indigo, silver highlights */
+.memorial-page[data-theme="starlight"] {
+  --color-navy-950: #05060f;
+  --color-navy-900: #0a0d1f;
+  --color-navy-800: #121633;
+  --color-navy-700: #1b2046;
+  --color-navy-600: #272d5c;
+  --color-gold-300: #e6e9f2;
+  --color-gold-400: #c9ceda;
+  --color-gold-500: #aab0c0;
+  --color-gold-600: #8a91a3;
+  --color-gold-700: #6b7284;
+  --color-sage-300: #b9b3e0;
+  --color-sage-400: #9a92cf;
+  --color-sage-500: #7c74b3;
+  --color-sage-600: #5f588f;
+}
+
+/* Chapel: charcoal and candlelight */
+.memorial-page[data-theme="chapel"] {
+  --color-navy-950: #0c0c0e;
+  --color-navy-900: #141416;
+  --color-navy-800: #1d1d21;
+  --color-navy-700: #27272c;
+  --color-navy-600: #333339;
+  --color-gold-300: #f1dfae;
+  --color-gold-400: #e4c983;
+  --color-gold-500: #cfae5f;
+  --color-gold-600: #a88a45;
+  --color-gold-700: #7c6431;
+  --color-sage-300: #b9b4a9;
+  --color-sage-400: #9d978a;
+  --color-sage-500: #7e786c;
+  --color-sage-600: #615c52;
+}
+
+/* Ocean: deep teal, sea glass */
+.memorial-page[data-theme="ocean"] {
+  --color-navy-950: #04141a;
+  --color-navy-900: #071e26;
+  --color-navy-800: #0d2a34;
+  --color-navy-700: #133a46;
+  --color-navy-600: #1b4a58;
+  --color-ivory-50: #f3f8f7;
+  --color-ivory-100: #e6f0ee;
+  --color-ivory-200: #cfe0dc;
+  --color-ivory-300: #b3cbc6;
+  --color-ivory-400: #8fa9a4;
+  --color-ivory-500: #6f8a86;
+  --color-gold-300: #b8e3d8;
+  --color-gold-400: #8fd0c1;
+  --color-gold-500: #63b3a2;
+  --color-gold-600: #468c7e;
+  --color-gold-700: #326659;
+  --color-sage-300: #e0d3b4;
+  --color-sage-400: #cdb98a;
+  --color-sage-500: #ad9a6b;
+  --color-sage-600: #86774f;
+}
+
+/* Sunset: warm plum dusk, amber light */
+.memorial-page[data-theme="sunset"] {
+  --color-navy-950: #160a12;
+  --color-navy-900: #1f0f18;
+  --color-navy-800: #2b1622;
+  --color-navy-700: #3a1f2e;
+  --color-navy-600: #4a2a3b;
+  --color-ivory-50: #fff6ee;
+  --color-ivory-100: #f8e9dd;
+  --color-ivory-200: #ecd5c2;
+  --color-ivory-300: #d9bba3;
+  --color-ivory-400: #b8967f;
+  --color-ivory-500: #937462;
+  --color-gold-300: #f5c48a;
+  --color-gold-400: #eaa85f;
+  --color-gold-500: #d18b3f;
+  --color-gold-600: #a86a2c;
+  --color-gold-700: #7d4e20;
+  --color-sage-300: #e2a5a5;
+  --color-sage-400: #cf8484;
+  --color-sage-500: #b06565;
+  --color-sage-600: #874b4b;
+}
+
+/* Parchment: cream paper, dark ink, antique gold (light) */
+.memorial-page[data-theme="parchment"] {
+  --color-navy-950: #e9dfc9;
+  --color-navy-900: #f3ebd9;
+  --color-navy-800: #faf4e6;
+  --color-navy-700: #e4d9c0;
+  --color-navy-600: #d4c6a7;
+  --color-ivory-50: #17130d;
+  --color-ivory-100: #241e14;
+  --color-ivory-200: #3a3224;
+  --color-ivory-300: #55493a;
+  --color-ivory-400: #6e6151;
+  --color-ivory-500: #8a7c6a;
+  --color-gold-300: #7a5a1f;
+  --color-gold-400: #8e6a26;
+  --color-gold-500: #6e5220;
+  --color-gold-600: #533e18;
+  --color-gold-700: #3e2e12;
+  --color-sage-300: #3f6b47;
+  --color-sage-400: #4f7f57;
+  --color-sage-500: #3f6646;
+  --color-sage-600: #2f4d35;
+}
+
+/* Garden: soft greens, morning light (light) */
+.memorial-page[data-theme="garden"] {
+  --color-navy-950: #d9e4d6;
+  --color-navy-900: #e7efe3;
+  --color-navy-800: #f2f7ef;
+  --color-navy-700: #d3dfcd;
+  --color-navy-600: #bfcfb8;
+  --color-ivory-50: #121a12;
+  --color-ivory-100: #1c261c;
+  --color-ivory-200: #2f3d2f;
+  --color-ivory-300: #475747;
+  --color-ivory-400: #5f6f5f;
+  --color-ivory-500: #77877a;
+  --color-gold-300: #6b5a1e;
+  --color-gold-400: #7d6a25;
+  --color-gold-500: #61521c;
+  --color-gold-600: #4a3f16;
+  --color-gold-700: #362e10;
+  --color-sage-300: #2f6b45;
+  --color-sage-400: #3b7d52;
+  --color-sage-500: #2f6442;
+  --color-sage-600: #234b32;
+}
+
+/* Light themes: the site's white-on-dark hairlines and washes flip to ink-on-paper */
+.memorial-page.is-light {
+  color-scheme: light;
+}
+.memorial-page.is-light .card {
+  border-color: rgb(0 0 0 / 0.08);
+}
+.memorial-page.is-light .btn-secondary {
+  border-color: rgb(0 0 0 / 0.18);
+  background: rgb(0 0 0 / 0.04);
+}
+.memorial-page.is-light .btn-secondary:hover {
+  border-color: rgb(0 0 0 / 0.3);
+  background: rgb(0 0 0 / 0.08);
+}
+.memorial-page.is-light .btn-ghost:hover {
+  background: rgb(0 0 0 / 0.06);
+}
+.memorial-page.is-light .input {
+  border-color: rgb(0 0 0 / 0.12);
+}
+.memorial-page.is-light [class*="border-white/"] {
+  border-color: rgb(0 0 0 / 0.1);
+}
+.memorial-page.is-light [class*="divide-white/"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(0 0 0 / 0.1);
+}
+.memorial-page.is-light [class*="bg-white/"] {
+  background-color: rgb(0 0 0 / 0.045);
+}
+.memorial-page.is-light ::selection {
+  background: rgb(0 0 0 / 0.12);
+}
