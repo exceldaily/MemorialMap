@@ -7,6 +7,8 @@ export type Bucket =
   | "memorial-videos";
 
 const BASE = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
+/** Supabase image transformation is a paid feature; opt in with NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORMS=true. */
+const TRANSFORMS = process.env.NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORMS === "true";
 
 /**
  * Public URL for an object in one of the memorial buckets.
@@ -24,7 +26,7 @@ export function publicUrl(path: string | null | undefined, bucket?: Bucket): str
 /** Render URL with transformations (Supabase image transformation, when available on the plan). */
 export function imageUrl(path: string | null | undefined, opts?: { width?: number; height?: number; quality?: number }, bucket?: Bucket) {
   const url = publicUrl(path, bucket);
-  if (!url || !opts) return url;
+  if (!url || !opts || !TRANSFORMS) return url;
   const params = new URLSearchParams();
   if (opts.width) params.set("width", String(opts.width));
   if (opts.height) params.set("height", String(opts.height));
