@@ -191,7 +191,7 @@ export const MemorialMap = forwardRef<MemorialMapHandle, MemorialMapProps>(funct
       type: "symbol",
       source: SRC_CLUSTERS,
       layout: {
-        "text-field": ["concat", ["to-string", ["get", "count"]], ["case", [">=", ["zoom"], 3], "\nmemorials", ""]],
+        "text-field": ["step", ["zoom"], ["to-string", ["get", "count"]], 3, ["concat", ["to-string", ["get", "count"]], "\nmemorials"]],
         "text-font": FONT,
         "text-size": ["interpolate", ["linear"], ["zoom"], 0, 10, 4, 12],
         "text-allow-overlap": true,
